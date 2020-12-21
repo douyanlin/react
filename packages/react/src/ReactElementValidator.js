@@ -324,15 +324,6 @@ export function jsxWithValidation(
       typeString = typeof type;
     }
 
-    if (__DEV__) {
-      console.error(
-        'React.jsx: type is invalid -- expected a string (for ' +
-          'built-in components) or a class/function (for composite ' +
-          'components) but got: %s.%s',
-        typeString,
-        info,
-      );
-    }
   }
 
   const element = jsxDEV(type, props, key, source, self);
@@ -362,29 +353,10 @@ export function jsxWithValidation(
             Object.freeze(children);
           }
         } else {
-          if (__DEV__) {
-            console.error(
-              'React.jsx: Static children should always be an array. ' +
-                'You are likely explicitly calling React.jsxs or React.jsxDEV. ' +
-                'Use the Babel transform instead.',
-            );
-          }
+
         }
       } else {
         validateChildKeys(children, type);
-      }
-    }
-  }
-
-  if (__DEV__) {
-    if (warnAboutSpreadingKeyToJSX) {
-      if (hasOwnProperty.call(props, 'key')) {
-        console.error(
-          'React.jsx: Spreading a key to JSX is a deprecated pattern. ' +
-            'Explicitly pass a key after spreading props in your JSX call. ' +
-            'E.g. <%s {...props} key={key} />',
-          getComponentName(type) || 'ComponentName',
-        );
       }
     }
   }
