@@ -231,18 +231,10 @@ export function updateContainer(
   parentComponent: ?React$Component<any, any>,
   callback: ?Function,
 ): ExpirationTime {
-  if (__DEV__) {
-    onScheduleRoot(container, element);
-  }
+
   const current = container.current;
   const currentTime = requestCurrentTimeForUpdate();
-  if (__DEV__) {
-    // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
-    if ('undefined' !== typeof jest) {
-      warnIfUnmockedScheduler(current);
-      warnIfNotScopedWithMatchingAct(current);
-    }
-  }
+
   const suspenseConfig = requestCurrentSuspenseConfig();
   const expirationTime = computeExpirationForFiber(
     currentTime,

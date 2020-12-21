@@ -140,14 +140,14 @@ export function createFiberRoot(
   hydrate: boolean,
   hydrationCallbacks: null | SuspenseHydrationCallbacks,
 ): FiberRoot {
-  const root: FiberRoot = (new FiberRootNode(containerInfo, tag, hydrate): any);
+  const root: FiberRoot = (new FiberRootNode(containerInfo, tag, hydrate): any); // 创建FiberRootNode
   if (enableSuspenseCallback) {
     root.hydrationCallbacks = hydrationCallbacks;
   }
 
   // Cyclic construction. This cheats the type system right now because
   // stateNode is any.
-  const uninitializedFiber = createHostRootFiber(tag);
+  const uninitializedFiber = createHostRootFiber(tag); // 创建HostRootFiber
   root.current = uninitializedFiber;
   uninitializedFiber.stateNode = root;
 

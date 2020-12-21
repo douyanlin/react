@@ -579,6 +579,7 @@ export function resetWorkInProgress(
   return workInProgress;
 }
 
+// 创建 HostRootFiber
 export function createHostRootFiber(tag: RootTag): Fiber {
   let mode;
   if (tag === ConcurrentRoot) {
@@ -586,6 +587,7 @@ export function createHostRootFiber(tag: RootTag): Fiber {
   } else if (tag === BlockingRoot) {
     mode = BlockingMode | StrictMode;
   } else {
+    // 走这里
     mode = NoMode;
   }
 
@@ -703,23 +705,6 @@ export function createFiberFromTypeAndProps(
           }
         }
         let info = '';
-        if (__DEV__) {
-          if (
-            type === undefined ||
-            (typeof type === 'object' &&
-              type !== null &&
-              Object.keys(type).length === 0)
-          ) {
-            info +=
-              ' You likely forgot to export your component from the file ' +
-              "it's defined in, or you might have mixed up default and " +
-              'named imports.';
-          }
-          const ownerName = owner ? getComponentName(owner.type) : null;
-          if (ownerName) {
-            info += '\n\nCheck the render method of `' + ownerName + '`.';
-          }
-        }
         invariant(
           false,
           'Element type is invalid: expected a string (for built-in ' +
