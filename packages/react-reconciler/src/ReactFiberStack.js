@@ -65,10 +65,6 @@ function push<T>(cursor: StackCursor<T>, value: T, fiber: Fiber): void {
 
   valueStack[index] = cursor.current;
 
-  if (__DEV__) {
-    fiberStack[index] = fiber;
-  }
-
   cursor.current = value;
 }
 

@@ -340,16 +340,6 @@ const SimpleEventPlugin: PluginModule<MouseEvent> & {
         EventConstructor = SyntheticPointerEvent;
         break;
       default:
-        if (__DEV__) {
-          if (knownHTMLTopLevelTypes.indexOf(topLevelType) === -1) {
-            warningWithoutStack(
-              false,
-              'SimpleEventPlugin: Unhandled event type, `%s`. This warning ' +
-                'is likely caused by a bug in React. Please file an issue.',
-              topLevelType,
-            );
-          }
-        }
         // HTML Events
         // @see http://www.w3.org/TR/html5/index.html#events-0
         EventConstructor = SyntheticEvent;

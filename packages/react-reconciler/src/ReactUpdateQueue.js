@@ -345,20 +345,9 @@ function getStateFromUpdate<State>(
       const payload = update.payload;
       if (typeof payload === 'function') {
         // Updater function
-        if (__DEV__) {
-          enterDisallowedContextReadInDEV();
-          if (
-            debugRenderPhaseSideEffects ||
-            (debugRenderPhaseSideEffectsForStrictMode &&
-              workInProgress.mode & StrictMode)
-          ) {
-            payload.call(instance, prevState, nextProps);
-          }
-        }
+
         const nextState = payload.call(instance, prevState, nextProps);
-        if (__DEV__) {
-          exitDisallowedContextReadInDEV();
-        }
+
         return nextState;
       }
       // State object
@@ -374,20 +363,7 @@ function getStateFromUpdate<State>(
       let partialState;
       if (typeof payload === 'function') {
         // Updater function
-        if (__DEV__) {
-          enterDisallowedContextReadInDEV();
-          if (
-            debugRenderPhaseSideEffects ||
-            (debugRenderPhaseSideEffectsForStrictMode &&
-              workInProgress.mode & StrictMode)
-          ) {
-            payload.call(instance, prevState, nextProps);
-          }
-        }
         partialState = payload.call(instance, prevState, nextProps);
-        if (__DEV__) {
-          exitDisallowedContextReadInDEV();
-        }
       } else {
         // Partial state object
         partialState = payload;
@@ -417,10 +393,6 @@ export function processUpdateQueue<State>(
   hasForceUpdate = false;
 
   queue = ensureWorkInProgressQueueIsAClone(workInProgress, queue);
-
-  if (__DEV__) {
-    currentlyProcessingQueue = queue;
-  }
 
   // These values may change as we process the queue.
   let newBaseState = queue.baseState;
@@ -562,9 +534,6 @@ export function processUpdateQueue<State>(
   workInProgress.expirationTime = newExpirationTime;
   workInProgress.memoizedState = resultState;
 
-  if (__DEV__) {
-    currentlyProcessingQueue = null;
-  }
 }
 
 function callCallback(callback, context) {

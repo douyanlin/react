@@ -389,7 +389,7 @@ export function scheduleUpdateOnFiber(
   checkForNestedUpdates();
   warnAboutInvalidUpdatesOnClassComponentsInDEV(fiber);
 
-  const root = markUpdateTimeFromFiberToRoot(fiber, expirationTime);
+  const root = markUpdateTimeFromFiberToRoot(fiber, expirationTime); // 拿到 FiberRootNode
   if (root === null) {
     warnAboutUpdateOnUnmountedFiberInDEV(fiber);
     return;
@@ -993,8 +993,8 @@ function finishConcurrentRender(
 // through Scheduler
 function performSyncWorkOnRoot(root) {
   // Check if there's expired work on this root. Otherwise, render at Sync.
-  const lastExpiredTime = root.lastExpiredTime;
-  const expirationTime = lastExpiredTime !== NoWork ? lastExpiredTime : Sync;
+  const lastExpiredTime = root.lastExpiredTime; // 初始化Render为0
+  const expirationTime = lastExpiredTime !== NoWork ? lastExpiredTime : Sync; // 初始化Render为Sync
   if (root.finishedExpirationTime === expirationTime) {
     // There's already a pending commit at this expiration time.
     // TODO: This is poorly factored. This case only exists for the
@@ -1005,7 +1005,6 @@ function performSyncWorkOnRoot(root) {
       (executionContext & (RenderContext | CommitContext)) === NoContext,
       'Should not already be working.',
     );
-
     flushPassiveEffects();
 
     // If the root or expiration time have changed, throw out the existing stack
@@ -1088,14 +1087,6 @@ function finishSyncRender(root, exitStatus, expirationTime) {
     // Set this to null to indicate there's no in-progress render.
     workInProgressRoot = null;
 
-    if (__DEV__) {
-      if (
-        exitStatus === RootSuspended ||
-        exitStatus === RootSuspendedWithDelay
-      ) {
-        flushSuspensePriorityWarningInDEV();
-      }
-    }
     commitRoot(root);
   }
 }
@@ -1282,6 +1273,7 @@ export function flushControlled(fn: () => mixed): void {
   }
 }
 
+// 创建或复用workInProgress，重置workInProgress的一些状态
 function prepareFreshStack(root, expirationTime) {
   root.finishedWork = null;
   root.finishedExpirationTime = NoWork;
@@ -1317,10 +1309,6 @@ function prepareFreshStack(root, expirationTime) {
     spawnedWorkDuringRender = null;
   }
 
-  if (__DEV__) {
-    ReactStrictModeWarnings.discardPendingWarnings();
-    componentsThatTriggeredHighPriSuspend = null;
-  }
 }
 
 function handleError(root, thrownValue) {
@@ -1532,7 +1520,6 @@ function performUnitOfWork(unitOfWork: Fiber): Fiber | null {
     next = beginWork(current, unitOfWork, renderExpirationTime);
   }
 
-  resetCurrentDebugFiberInDEV();
   unitOfWork.memoizedProps = unitOfWork.pendingProps;
   if (next === null) {
     // If this doesn't spawn new work, complete the current work.
@@ -1556,7 +1543,6 @@ function completeUnitOfWork(unitOfWork: Fiber): Fiber | null {
 
     // Check if the work completed or if something threw.
     if ((workInProgress.effectTag & Incomplete) === NoEffect) {
-      setCurrentDebugFiberInDEV(workInProgress);
       let next;
       if (
         !enableProfilerTimer ||
@@ -1570,7 +1556,6 @@ function completeUnitOfWork(unitOfWork: Fiber): Fiber | null {
         stopProfilerTimerIfRunningAndRecordDelta(workInProgress, false);
       }
       stopWorkTimer(workInProgress);
-      resetCurrentDebugFiberInDEV();
       resetChildExpirationTime(workInProgress);
 
       if (next !== null) {
@@ -1761,15 +1746,15 @@ function commitRoot(root) {
 }
 
 function commitRootImpl(root, renderPriorityLevel) {
+  // 触发useEffect的回调和其他同步任务。由于这些任务可能触发新的渲染，
   flushPassiveEffects();
-  flushRenderPhaseStrictModeWarningsInDEV();
 
   invariant(
     (executionContext & (RenderContext | CommitContext)) === NoContext,
     'Should not already be working.',
   );
 
-  const finishedWork = root.finishedWork;
+  const finishedWork = root.finishedWork; // root的finishedWork指当前应用的rootFiber
   const expirationTime = root.finishedExpirationTime;
   if (finishedWork === null) {
     return null;
@@ -1785,6 +1770,7 @@ function commitRootImpl(root, renderPriorityLevel) {
 
   // commitRoot never returns a continuation; it always finishes synchronously.
   // So we can clear these now to allow a new callback to be scheduled.
+  // 重置scheduler绑定的回调函数
   root.callbackNode = null;
   root.callbackExpirationTime = NoWork;
   root.callbackPriority = NoPriority;
@@ -1821,6 +1807,11 @@ function commitRootImpl(root, renderPriorityLevel) {
     // the root has an effect, we need to add it to the end of the list. The
     // resulting list is the set that would belong to the root's parent, if it
     // had one; that is, all the effects in the tree including the root.
+    // 将effectList赋值给firstEffect
+    // 由于每个fiber的effectList只包含他的子孙节点
+    // 所以根节点如果有effectTag则不会被包含进来
+    // 所以这里将有effectTag的根节点插入到effectList尾部
+    // 这样才能保证有effect的fiber都在effectList中
     if (finishedWork.lastEffect !== null) {
       finishedWork.lastEffect.nextEffect = finishedWork;
       firstEffect = finishedWork.firstEffect;
@@ -1829,6 +1820,7 @@ function commitRootImpl(root, renderPriorityLevel) {
     }
   } else {
     // There is no effect on the root.
+    // 根节点没有effectTag
     firstEffect = finishedWork.firstEffect;
   }
 
@@ -1851,22 +1843,12 @@ function commitRootImpl(root, renderPriorityLevel) {
     prepareForCommit(root.containerInfo);
     nextEffect = firstEffect;
     do {
-      if (__DEV__) {
-        invokeGuardedCallback(null, commitBeforeMutationEffects, null);
-        if (hasCaughtError()) {
-          invariant(nextEffect !== null, 'Should be working on an effect.');
-          const error = clearCaughtError();
-          captureCommitPhaseError(nextEffect, error);
-          nextEffect = nextEffect.nextEffect;
-        }
-      } else {
-        try {
-          commitBeforeMutationEffects();
-        } catch (error) {
-          invariant(nextEffect !== null, 'Should be working on an effect.');
-          captureCommitPhaseError(nextEffect, error);
-          nextEffect = nextEffect.nextEffect;
-        }
+      try {
+        commitBeforeMutationEffects();
+      } catch (error) {
+        invariant(nextEffect !== null, 'Should be working on an effect.');
+        captureCommitPhaseError(nextEffect, error);
+        nextEffect = nextEffect.nextEffect;
       }
     } while (nextEffect !== null);
     stopCommitSnapshotEffectsTimer();
@@ -1881,28 +1863,12 @@ function commitRootImpl(root, renderPriorityLevel) {
     startCommitHostEffectsTimer();
     nextEffect = firstEffect;
     do {
-      if (__DEV__) {
-        invokeGuardedCallback(
-          null,
-          commitMutationEffects,
-          null,
-          root,
-          renderPriorityLevel,
-        );
-        if (hasCaughtError()) {
-          invariant(nextEffect !== null, 'Should be working on an effect.');
-          const error = clearCaughtError();
-          captureCommitPhaseError(nextEffect, error);
-          nextEffect = nextEffect.nextEffect;
-        }
-      } else {
-        try {
-          commitMutationEffects(root, renderPriorityLevel);
-        } catch (error) {
-          invariant(nextEffect !== null, 'Should be working on an effect.');
-          captureCommitPhaseError(nextEffect, error);
-          nextEffect = nextEffect.nextEffect;
-        }
+      try {
+        commitMutationEffects(root, renderPriorityLevel);
+      } catch (error) {
+        invariant(nextEffect !== null, 'Should be working on an effect.');
+        captureCommitPhaseError(nextEffect, error);
+        nextEffect = nextEffect.nextEffect;
       }
     } while (nextEffect !== null);
     stopCommitHostEffectsTimer();
@@ -1920,29 +1886,14 @@ function commitRootImpl(root, renderPriorityLevel) {
     startCommitLifeCyclesTimer();
     nextEffect = firstEffect;
     do {
-      if (__DEV__) {
-        invokeGuardedCallback(
-          null,
-          commitLayoutEffects,
-          null,
-          root,
-          expirationTime,
-        );
-        if (hasCaughtError()) {
-          invariant(nextEffect !== null, 'Should be working on an effect.');
-          const error = clearCaughtError();
-          captureCommitPhaseError(nextEffect, error);
-          nextEffect = nextEffect.nextEffect;
-        }
-      } else {
-        try {
-          commitLayoutEffects(root, expirationTime);
-        } catch (error) {
-          invariant(nextEffect !== null, 'Should be working on an effect.');
-          captureCommitPhaseError(nextEffect, error);
-          nextEffect = nextEffect.nextEffect;
-        }
+      try {
+        commitLayoutEffects(root, expirationTime);
+      } catch (error) {
+        invariant(nextEffect !== null, 'Should be working on an effect.');
+        captureCommitPhaseError(nextEffect, error);
+        nextEffect = nextEffect.nextEffect;
       }
+      
     } while (nextEffect !== null);
     stopCommitLifeCyclesTimer();
 
@@ -2046,6 +1997,7 @@ function commitRootImpl(root, renderPriorityLevel) {
 
   // Always call this before exiting `commitRoot`, to ensure that any
   // additional work on this root is scheduled.
+  // 在离开commitRoot函数前调用，触发一次新的调度，确保任何附加的任务被调度
   ensureRootIsScheduled(root);
 
   if (hasUncaughtError) {
@@ -2064,6 +2016,9 @@ function commitRootImpl(root, renderPriorityLevel) {
   }
 
   // If layout work was scheduled, flush it now.
+  // 执行同步任务，这样同步任务不需要等到下次事件循环再执行
+  // 比如在 componentDidMount 中执行 setState 创建的更新会在这里被同步执行
+  // 或useLayoutEffect
   flushSyncCallbackQueue();
   return null;
 }
@@ -2072,21 +2027,29 @@ function commitBeforeMutationEffects() {
   while (nextEffect !== null) {
     const effectTag = nextEffect.effectTag;
     if ((effectTag & Snapshot) !== NoEffect) {
-      setCurrentDebugFiberInDEV(nextEffect);
       recordEffect();
 
       const current = nextEffect.alternate;
+      // 调用getSnapshotBeforeUpdate
       commitBeforeMutationEffectOnFiber(current, nextEffect);
-
-      resetCurrentDebugFiberInDEV();
     }
+
+    // 调度useEffect
     if ((effectTag & Passive) !== NoEffect) {
       // If there are passive effects, schedule a callback to flush at
       // the earliest opportunity.
       if (!rootDoesHavePassiveEffects) {
         rootDoesHavePassiveEffects = true;
         scheduleCallback(NormalPriority, () => {
+          // 触发useEffect
+          // 整个useEffect异步调用分为三步：
+
+          // 1. before mutation阶段在scheduleCallback中调度flushPassiveEffects
+          // 2. layout阶段之后将effectList赋值给rootWithPendingPassiveEffects
+          // 3. scheduleCallback触发flushPassiveEffects，flushPassiveEffects内部遍历rootWithPendingPassiveEffects
           flushPassiveEffects();
+          // 为什么useEffect要异步调用？与 componentDidMount、componentDidUpdate 不同的是，在浏览器完成布局与绘制之后，
+          // 传给 useEffect 的函数会延迟调用。这使得它适用于许多常见的副作用场景，比如设置订阅和事件处理等情况，因此不应在函数中执行阻塞浏览器更新屏幕的操作。
           return null;
         });
       }
@@ -2101,11 +2064,11 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
     setCurrentDebugFiberInDEV(nextEffect);
 
     const effectTag = nextEffect.effectTag;
-
+    // 根据 ContentReset effectTag重置文字节点
     if (effectTag & ContentReset) {
       commitResetTextContent(nextEffect);
     }
-
+    // 更新ref
     if (effectTag & Ref) {
       const current = nextEffect.alternate;
       if (current !== null) {
@@ -2119,8 +2082,10 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
     // switch on that value.
     let primaryEffectTag =
       effectTag & (Placement | Update | Deletion | Hydrating);
+    // 根据 effectTag 分别处理
     switch (primaryEffectTag) {
       case Placement: {
+        // 插入DOM
         commitPlacement(nextEffect);
         // Clear the "placement" from effect tag so that we know that this is
         // inserted, before any life-cycles like componentDidMount gets called.
@@ -2129,6 +2094,7 @@ function commitMutationEffects(root: FiberRoot, renderPriorityLevel) {
         nextEffect.effectTag &= ~Placement;
         break;
       }
+      // 插入DOM 并 更新DOM
       case PlacementAndUpdate: {
         // Placement
         commitPlacement(nextEffect);
@@ -2177,8 +2143,12 @@ function commitLayoutEffects(
   committedExpirationTime: ExpirationTime,
 ) {
   // TODO: Should probably move the bulk of this function to commitWork.
+  
+  // commitLayoutEffects一共做了两件事：
+  // commitLayoutEffectOnFiber（调用生命周期钩子和hook相关操作）
+  // commitAttachRef（赋值 ref）
+
   while (nextEffect !== null) {
-    setCurrentDebugFiberInDEV(nextEffect);
 
     const effectTag = nextEffect.effectTag;
 
@@ -2198,7 +2168,6 @@ function commitLayoutEffects(
       commitAttachRef(nextEffect);
     }
 
-    resetCurrentDebugFiberInDEV();
     nextEffect = nextEffect.nextEffect;
   }
 }
@@ -2236,23 +2205,14 @@ function flushPassiveEffectsImpl() {
   // change in the future.
   let effect = root.current.firstEffect;
   while (effect !== null) {
-    if (__DEV__) {
-      setCurrentDebugFiberInDEV(effect);
-      invokeGuardedCallback(null, commitPassiveHookEffects, null, effect);
-      if (hasCaughtError()) {
-        invariant(effect !== null, 'Should be working on an effect.');
-        const error = clearCaughtError();
-        captureCommitPhaseError(effect, error);
-      }
-      resetCurrentDebugFiberInDEV();
-    } else {
-      try {
-        commitPassiveHookEffects(effect);
-      } catch (error) {
-        invariant(effect !== null, 'Should be working on an effect.');
-        captureCommitPhaseError(effect, error);
-      }
+
+    try {
+      commitPassiveHookEffects(effect);
+    } catch (error) {
+      invariant(effect !== null, 'Should be working on an effect.');
+      captureCommitPhaseError(effect, error);
     }
+    
     const nextNextEffect = effect.nextEffect;
     // Remove nextEffect pointer to assist GC
     effect.nextEffect = null;
@@ -2557,18 +2517,6 @@ function checkForNestedUpdates() {
     );
   }
 
-  if (__DEV__) {
-    if (nestedPassiveUpdateCount > NESTED_PASSIVE_UPDATE_LIMIT) {
-      nestedPassiveUpdateCount = 0;
-      warning(
-        false,
-        'Maximum update depth exceeded. This can happen when a component ' +
-          "calls setState inside useEffect, but useEffect either doesn't " +
-          'have a dependency array, or one of the dependencies changes on ' +
-          'every render.',
-      );
-    }
-  }
 }
 
 function flushRenderPhaseStrictModeWarningsInDEV() {
@@ -2609,141 +2557,15 @@ function checkForInterruption(
 
 let didWarnStateUpdateForUnmountedComponent: Set<string> | null = null;
 function warnAboutUpdateOnUnmountedFiberInDEV(fiber) {
-  if (__DEV__) {
-    const tag = fiber.tag;
-    if (
-      tag !== HostRoot &&
-      tag !== ClassComponent &&
-      tag !== FunctionComponent &&
-      tag !== ForwardRef &&
-      tag !== MemoComponent &&
-      tag !== SimpleMemoComponent
-    ) {
-      // Only warn for user-defined components, not internal ones like Suspense.
-      return;
-    }
-    // We show the whole stack but dedupe on the top component's name because
-    // the problematic code almost always lies inside that component.
-    const componentName = getComponentName(fiber.type) || 'ReactComponent';
-    if (didWarnStateUpdateForUnmountedComponent !== null) {
-      if (didWarnStateUpdateForUnmountedComponent.has(componentName)) {
-        return;
-      }
-      didWarnStateUpdateForUnmountedComponent.add(componentName);
-    } else {
-      didWarnStateUpdateForUnmountedComponent = new Set([componentName]);
-    }
-    warningWithoutStack(
-      false,
-      "Can't perform a React state update on an unmounted component. This " +
-        'is a no-op, but it indicates a memory leak in your application. To ' +
-        'fix, cancel all subscriptions and asynchronous tasks in %s.%s',
-      tag === ClassComponent
-        ? 'the componentWillUnmount method'
-        : 'a useEffect cleanup function',
-      getStackByFiberInDevAndProd(fiber),
-    );
-  }
+
 }
 
-let beginWork;
-if (__DEV__ && replayFailedUnitOfWorkWithInvokeGuardedCallback) {
-  let dummyFiber = null;
-  beginWork = (current, unitOfWork, expirationTime) => {
-    // If a component throws an error, we replay it again in a synchronously
-    // dispatched event, so that the debugger will treat it as an uncaught
-    // error See ReactErrorUtils for more information.
-
-    // Before entering the begin phase, copy the work-in-progress onto a dummy
-    // fiber. If beginWork throws, we'll use this to reset the state.
-    const originalWorkInProgressCopy = assignFiberPropertiesInDEV(
-      dummyFiber,
-      unitOfWork,
-    );
-    try {
-      return originalBeginWork(current, unitOfWork, expirationTime);
-    } catch (originalError) {
-      if (
-        originalError !== null &&
-        typeof originalError === 'object' &&
-        typeof originalError.then === 'function'
-      ) {
-        // Don't replay promises. Treat everything else like an error.
-        throw originalError;
-      }
-
-      // Keep this code in sync with renderRoot; any changes here must have
-      // corresponding changes there.
-      resetContextDependencies();
-      resetHooks();
-
-      // Unwind the failed stack frame
-      unwindInterruptedWork(unitOfWork);
-
-      // Restore the original properties of the fiber.
-      assignFiberPropertiesInDEV(unitOfWork, originalWorkInProgressCopy);
-
-      if (enableProfilerTimer && unitOfWork.mode & ProfileMode) {
-        // Reset the profiler timer.
-        startProfilerTimer(unitOfWork);
-      }
-
-      // Run beginWork again.
-      invokeGuardedCallback(
-        null,
-        originalBeginWork,
-        null,
-        current,
-        unitOfWork,
-        expirationTime,
-      );
-
-      if (hasCaughtError()) {
-        const replayError = clearCaughtError();
-        // `invokeGuardedCallback` sometimes sets an expando `_suppressLogging`.
-        // Rethrow this error instead of the original one.
-        throw replayError;
-      } else {
-        // This branch is reachable if the render phase is impure.
-        throw originalError;
-      }
-    }
-  };
-} else {
-  beginWork = originalBeginWork;
-}
+let beginWork = originalBeginWork;
 
 let didWarnAboutUpdateInRender = false;
 let didWarnAboutUpdateInGetChildContext = false;
 function warnAboutInvalidUpdatesOnClassComponentsInDEV(fiber) {
-  if (__DEV__) {
-    if (fiber.tag === ClassComponent) {
-      switch (ReactCurrentDebugFiberPhaseInDEV) {
-        case 'getChildContext':
-          if (didWarnAboutUpdateInGetChildContext) {
-            return;
-          }
-          warningWithoutStack(
-            false,
-            'setState(...): Cannot call setState() inside getChildContext()',
-          );
-          didWarnAboutUpdateInGetChildContext = true;
-          break;
-        case 'render':
-          if (didWarnAboutUpdateInRender) {
-            return;
-          }
-          warningWithoutStack(
-            false,
-            'Cannot update during an existing state transition (such as ' +
-              'within `render`). Render methods should be a pure function of ' +
-              'props and state.',
-          );
-          didWarnAboutUpdateInRender = true;
-          break;
-      }
-    }
-  }
+
 }
 
 // a 'shared' variable that changes when act() opens/closes in tests.

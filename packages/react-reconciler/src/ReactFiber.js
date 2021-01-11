@@ -412,14 +412,6 @@ export function createWorkInProgress(
     workInProgress.type = current.type;
     workInProgress.stateNode = current.stateNode;
 
-    if (__DEV__) {
-      // DEV-only fields
-      workInProgress._debugID = current._debugID;
-      workInProgress._debugSource = current._debugSource;
-      workInProgress._debugOwner = current._debugOwner;
-      workInProgress._debugHookTypes = current._debugHookTypes;
-    }
-
     workInProgress.alternate = current;
     current.alternate = workInProgress;
   } else {
@@ -474,24 +466,6 @@ export function createWorkInProgress(
     workInProgress.treeBaseDuration = current.treeBaseDuration;
   }
 
-  if (__DEV__) {
-    workInProgress._debugNeedsRemount = current._debugNeedsRemount;
-    switch (workInProgress.tag) {
-      case IndeterminateComponent:
-      case FunctionComponent:
-      case SimpleMemoComponent:
-        workInProgress.type = resolveFunctionForHotReloading(current.type);
-        break;
-      case ClassComponent:
-        workInProgress.type = resolveClassForHotReloading(current.type);
-        break;
-      case ForwardRef:
-        workInProgress.type = resolveForwardRefForHotReloading(current.type);
-        break;
-      default:
-        break;
-    }
-  }
 
   return workInProgress;
 }
@@ -606,13 +580,7 @@ export function createFiberFromTypeAndProps(
   if (typeof type === 'function') {
     if (shouldConstruct(type)) {
       fiberTag = ClassComponent;
-      if (__DEV__) {
-        resolvedType = resolveClassForHotReloading(resolvedType);
-      }
     } else {
-      if (__DEV__) {
-        resolvedType = resolveFunctionForHotReloading(resolvedType);
-      }
     }
   } else if (typeof type === 'string') {
     fiberTag = HostComponent;
@@ -656,9 +624,6 @@ export function createFiberFromTypeAndProps(
               break getTag;
             case REACT_FORWARD_REF_TYPE:
               fiberTag = ForwardRef;
-              if (__DEV__) {
-                resolvedType = resolveForwardRefForHotReloading(resolvedType);
-              }
               break getTag;
             case REACT_MEMO_TYPE:
               fiberTag = MemoComponent;
@@ -691,23 +656,6 @@ export function createFiberFromTypeAndProps(
           }
         }
         let info = '';
-        if (__DEV__) {
-          if (
-            type === undefined ||
-            (typeof type === 'object' &&
-              type !== null &&
-              Object.keys(type).length === 0)
-          ) {
-            info +=
-              ' You likely forgot to export your component from the file ' +
-              "it's defined in, or you might have mixed up default and " +
-              'named imports.';
-          }
-          const ownerName = owner ? getComponentName(owner.type) : null;
-          if (ownerName) {
-            info += '\n\nCheck the render method of `' + ownerName + '`.';
-          }
-        }
         invariant(
           false,
           'Element type is invalid: expected a string (for built-in ' +
@@ -734,9 +682,7 @@ export function createFiberFromElement(
   expirationTime: ExpirationTime,
 ): Fiber {
   let owner = null;
-  if (__DEV__) {
-    owner = element._owner;
-  }
+
   const type = element.type;
   const key = element.key;
   const pendingProps = element.props;
@@ -748,10 +694,6 @@ export function createFiberFromElement(
     mode,
     expirationTime,
   );
-  if (__DEV__) {
-    fiber._debugSource = element._source;
-    fiber._debugOwner = element._owner;
-  }
   return fiber;
 }
 

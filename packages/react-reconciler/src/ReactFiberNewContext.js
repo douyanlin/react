@@ -60,9 +60,6 @@ export function resetContextDependencies(): void {
   currentlyRenderingFiber = null;
   lastContextDependency = null;
   lastContextWithAllBitsObserved = null;
-  if (__DEV__) {
-    isDisallowedContextReadInDEV = false;
-  }
 }
 
 export function enterDisallowedContextReadInDEV(): void {
@@ -333,17 +330,6 @@ export function readContext<T>(
   context: ReactContext<T>,
   observedBits: void | number | boolean,
 ): T {
-  if (__DEV__) {
-    // This warning would fire if you read context inside a Hook like useMemo.
-    // Unlike the class check below, it's not enforced in production for perf.
-    warning(
-      !isDisallowedContextReadInDEV,
-      'Context can only be read while React is rendering. ' +
-        'In classes, you can read it in the render method or getDerivedStateFromProps. ' +
-        'In function components, you can read it directly in the function body, but not ' +
-        'inside Hooks like useReducer() or useMemo().',
-    );
-  }
 
   if (lastContextWithAllBitsObserved === context) {
     // Nothing to do. We already observe everything in this context.
