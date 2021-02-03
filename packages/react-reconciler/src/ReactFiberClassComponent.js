@@ -194,9 +194,6 @@ const classComponentUpdater = {
     const update = createUpdate(expirationTime, suspenseConfig);
     update.payload = payload;
     if (callback !== undefined && callback !== null) {
-      if (__DEV__) {
-        warnOnInvalidCallback(callback, 'setState');
-      }
       update.callback = callback;
     }
 
@@ -218,9 +215,6 @@ const classComponentUpdater = {
     update.payload = payload;
 
     if (callback !== undefined && callback !== null) {
-      if (__DEV__) {
-        warnOnInvalidCallback(callback, 'replaceState');
-      }
       update.callback = callback;
     }
 
@@ -241,9 +235,6 @@ const classComponentUpdater = {
     update.tag = ForceUpdate;
 
     if (callback !== undefined && callback !== null) {
-      if (__DEV__) {
-        warnOnInvalidCallback(callback, 'forceUpdate');
-      }
       update.callback = callback;
     }
 
@@ -270,15 +261,6 @@ function checkShouldComponentUpdate(
       nextContext,
     );
     stopPhaseTimer();
-
-    if (__DEV__) {
-      warningWithoutStack(
-        shouldUpdate !== undefined,
-        '%s.shouldComponentUpdate(): Returned undefined instead of a ' +
-          'boolean value. Make sure to return true or false.',
-        getComponentName(ctor) || 'Component',
-      );
-    }
 
     return shouldUpdate;
   }
@@ -586,15 +568,6 @@ function callComponentWillMount(workInProgress, instance) {
   stopPhaseTimer();
 
   if (oldState !== instance.state) {
-    if (__DEV__) {
-      warningWithoutStack(
-        false,
-        '%s.componentWillMount(): Assigning directly to this.state is ' +
-          "deprecated (except inside a component's " +
-          'constructor). Use setState instead.',
-        getComponentName(workInProgress.type) || 'Component',
-      );
-    }
     classComponentUpdater.enqueueReplaceState(instance, instance.state, null);
   }
 }
@@ -616,20 +589,7 @@ function callComponentWillReceiveProps(
   stopPhaseTimer();
 
   if (instance.state !== oldState) {
-    if (__DEV__) {
-      const componentName =
-        getComponentName(workInProgress.type) || 'Component';
-      if (!didWarnAboutStateAssignmentForComponent.has(componentName)) {
-        didWarnAboutStateAssignmentForComponent.add(componentName);
-        warningWithoutStack(
-          false,
-          '%s.componentWillReceiveProps(): Assigning directly to ' +
-            "this.state is deprecated (except inside a component's " +
-            'constructor). Use setState instead.',
-          componentName,
-        );
-      }
-    }
+
     classComponentUpdater.enqueueReplaceState(instance, instance.state, null);
   }
 }

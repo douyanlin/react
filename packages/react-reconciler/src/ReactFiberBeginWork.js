@@ -1389,12 +1389,6 @@ function updateSuspenseComponent(
   const mode = workInProgress.mode;
   const nextProps = workInProgress.pendingProps;
 
-  // This is used by DevTools to force a boundary to suspend.
-  if (__DEV__) {
-    if (shouldSuspend(workInProgress)) {
-      workInProgress.effectTag |= DidCapture;
-    }
-  }
 
   let suspenseContext: SuspenseContext = suspenseStackCursor.current;
 
@@ -1436,18 +1430,6 @@ function updateSuspenseComponent(
 
   pushSuspenseContext(workInProgress, suspenseContext);
 
-  if (__DEV__) {
-    if ('maxDuration' in nextProps) {
-      if (!didWarnAboutMaxDuration) {
-        didWarnAboutMaxDuration = true;
-        warning(
-          false,
-          'maxDuration has been removed from React. ' +
-            'Remove the maxDuration prop.',
-        );
-      }
-    }
-  }
 
   // This next part is a bit confusing. If the children timeout, we switch to
   // showing the fallback children in place of the "primary" children.

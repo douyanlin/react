@@ -81,30 +81,11 @@ export function pushProvider<T>(providerFiber: Fiber, nextValue: T): void {
     push(valueCursor, context._currentValue, providerFiber);
 
     context._currentValue = nextValue;
-    if (__DEV__) {
-      warningWithoutStack(
-        context._currentRenderer === undefined ||
-          context._currentRenderer === null ||
-          context._currentRenderer === rendererSigil,
-        'Detected multiple renderers concurrently rendering the ' +
-          'same context provider. This is currently unsupported.',
-      );
-      context._currentRenderer = rendererSigil;
-    }
   } else {
     push(valueCursor, context._currentValue2, providerFiber);
 
     context._currentValue2 = nextValue;
-    if (__DEV__) {
-      warningWithoutStack(
-        context._currentRenderer2 === undefined ||
-          context._currentRenderer2 === null ||
-          context._currentRenderer2 === rendererSigil,
-        'Detected multiple renderers concurrently rendering the ' +
-          'same context provider. This is currently unsupported.',
-      );
-      context._currentRenderer2 = rendererSigil;
-    }
+
   }
 }
 
@@ -135,14 +116,6 @@ export function calculateChangedBits<T>(
         ? context._calculateChangedBits(oldValue, newValue)
         : MAX_SIGNED_31_BIT_INT;
 
-    if (__DEV__) {
-      warning(
-        (changedBits & MAX_SIGNED_31_BIT_INT) === changedBits,
-        'calculateChangedBits: Expected the return value to be a ' +
-          '31-bit integer. Instead received: %s',
-        changedBits,
-      );
-    }
     return changedBits | 0;
   }
 }

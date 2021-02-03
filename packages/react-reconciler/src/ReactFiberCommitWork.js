@@ -532,18 +532,6 @@ function commitAttachRef(finishedWork: Fiber) {
     if (typeof ref === 'function') {
       ref(instanceToUse);
     } else {
-      if (__DEV__) {
-        if (!ref.hasOwnProperty('current')) {
-          warningWithoutStack(
-            false,
-            'Unexpected ref object provided for %s. ' +
-              'Use either a ref-setter function or React.createRef().%s',
-            getComponentName(finishedWork.type),
-            getStackByFiberInDevAndProd(finishedWork),
-          );
-        }
-      }
-
       ref.current = instanceToUse;
     }
   }
@@ -1193,13 +1181,13 @@ function commitWork(current: Fiber | null, finishedWork: Fiber): void {
             finishedWork,
           );
         }
-        if (enableFlareAPI) {
-          const prevListeners = oldProps.listeners;
-          const nextListeners = newProps.listeners;
-          if (prevListeners !== nextListeners) {
-            updateEventListeners(nextListeners, finishedWork, null);
-          }
-        }
+        // if (enableFlareAPI) {
+        //   const prevListeners = oldProps.listeners;
+        //   const nextListeners = newProps.listeners;
+        //   if (prevListeners !== nextListeners) {
+        //     updateEventListeners(nextListeners, finishedWork, null);
+        //   }
+        // }
       }
       return;
     }

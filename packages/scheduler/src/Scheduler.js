@@ -135,21 +135,9 @@ function flushWork(hasTimeRemaining, initialTime) {
   isPerformingWork = true;
   const previousPriorityLevel = currentPriorityLevel;
   try {
-    if (enableProfiling) {
-      try {
-        return workLoop(hasTimeRemaining, initialTime);
-      } catch (error) {
-        if (currentTask !== null) {
-          const currentTime = getCurrentTime();
-          markTaskErrored(currentTask, currentTime);
-          currentTask.isQueued = false;
-        }
-        throw error;
-      }
-    } else {
-      // No catch in prod codepath.
-      return workLoop(hasTimeRemaining, initialTime);
-    }
+    // No catch in prod codepath.
+    return workLoop(hasTimeRemaining, initialTime);
+    
   } finally {
     currentTask = null;
     currentPriorityLevel = previousPriorityLevel;
@@ -188,10 +176,6 @@ function workLoop(hasTimeRemaining, initialTime) {
         currentTask.callback = continuationCallback;
         markTaskYield(currentTask, currentTime);
       } else {
-        if (enableProfiling) {
-          markTaskCompleted(currentTask, currentTime);
-          currentTask.isQueued = false;
-        }
         if (currentTask === peek(taskQueue)) {
           pop(taskQueue);
         }
@@ -345,10 +329,6 @@ function unstable_scheduleCallback(priorityLevel, callback, options) {
   } else {
     newTask.sortIndex = expirationTime;
     push(taskQueue, newTask);
-    if (enableProfiling) {
-      markTaskStart(newTask, currentTime);
-      newTask.isQueued = true;
-    }
     // Schedule a host callback, if needed. If we're already performing work,
     // wait until the next time we yield.
     if (!isHostCallbackScheduled && !isPerformingWork) {

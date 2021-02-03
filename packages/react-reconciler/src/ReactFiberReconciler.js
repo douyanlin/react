@@ -277,7 +277,7 @@ export function updateContainer(
   const currentTime = requestCurrentTime();
 
   const suspenseConfig = requestCurrentSuspenseConfig();
-  const expirationTime = computeExpirationForFiber(
+  const expirationTime = computeExpirationForFiber( // 未开启Concurrent模式的时候回直接返回. Sync = Math.pow(2, 30) - 1
     currentTime,
     current,
     suspenseConfig,
